@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News Aggregator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #FFDEE9, #B5FFFC);
+            color: #333;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            overflow: auto;
+            height: 90vh;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            color: #ff4081;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .loader {
+            display: none;
+            text-align: center;
+            padding: 500px 0;
+        }
+
+        .loader img {
+            width: 80px;
+        }
+
+        button, select, input[type="text"] {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            margin: 10px 5px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button {
+            background-color: #3f51b5;
+            color: white;
+        }
+
+        button:hover {
+            background-color: #303f9f;
+        }
+
+        input[type="text"], select {
+            background-color: #f1f1f1;
+            color: #333;
+        }
+
+        #articles {
+            display: grid;
+            gap: 20px;
+            grid-template-columns: 1fr;
+            margin-top: 20px;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+
+        .article {
+            padding: 15px;
+            background: linear-gradient(120deg, #FFA17F, #00223E);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.2s;
+        }
+
+        .article:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .content {
+            font-size: 0.9rem;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .pagination button {
+            background-color: #009688;
+            color: white;
+            padding: 8px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Latest News</h1>
+
+        <input type="text" id="search" placeholder="Search articles..." oninput="searchArticles()">
+        
+        <select id="sort" onchange="sortArticles()">
+            <option value="title">Sort by Title</option>
+            <option value="publishedAt">Sort by Published Date</option>
+        </select>
+        
+        <button onclick="fetchArticles()">Load Articles</button>
+
+        <div id="loading" class="loader">
+            <img src="https://i.gifer.com/YCZH.gif" alt="Loading...">
+        </div>
+
+        <div id="articles"></div>
+
+        <div id="pagination" class="pagination"></div>
+    </div>
+
+    <script>
+        let articles = [];
+        let currentPage = 1;
+        const articlesPerPage = 5;
+
+        async function fetchArticles() {
+    const articlesContainer = document.getElementById('articles');
+    const loadingContainer = document.getElementById('loading');
+    const paginationContainer = document.getElementById('pagination');
+    const searchInput = document.getElementById('search').value.trim().toLowerCase();
+
+    loadingContainer.style.display = 'block';
+    articlesContainer.innerHTML = '';
+    paginationContainer.innerHTML = '';
+
+    try {
+        const requestBody = {
+            httpMethod: "GET",
+            body: JSON.stringify({
+                ArticleID: "9898",
+                Content: "This is a sample article."
+            })
+        };
+
+        const response = await fetch('https://ten0gjuh78.execute-api.ap-south-1.amazonaws.com/dev/articles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+
+        const data = await response.json();
+        articles = JSON.parse(data.body) || [];
+        loadingContainer.style.display = 'none';
+
+        if (articles.length > 0) {
+            if (searchInput) {
+                articles = articles.filter(article => 
+                    article.Title && article.Title.toLowerCase().includes(searchInput)
+                );
+                if (articles.length === 0) {
+                    articlesContainer.innerHTML = 'No articles available for this search.';
+                }
+            }
+            displayArticles();
+            displayPagination();
+        } else {
+            articlesContainer.innerHTML = 'No articles available.';
+        }
+    } catch (error) {
+        articlesContainer.innerHTML = `Error: ${error.message}`;
+        loadingContainer.style.display = 'none';
+    }
+}
+
+
+        function displayArticles() {
+            const articlesContainer = document.getElementById('articles');
+            articlesContainer.innerHTML = '';
+            const start = (currentPage - 1) * articlesPerPage;
+            const end = start + articlesPerPage;
+            const currentArticles = articles.slice(start, end);
+
+            currentArticles.forEach(article => {
+                const articleElement = document.createElement('div');
+                articleElement.className = 'article';
+                articleElement.innerHTML = `
+                    <div class="title">${article.Title}</div>
+                    <div class="description">${article.Description || ''}</div>
+                    <div class="content">${article.Content || ''}</div>
+                `;
+                articlesContainer.appendChild(articleElement);
+            });
+        }
+
+        function displayPagination() {
+            const paginationContainer = document.getElementById('pagination');
+            paginationContainer.innerHTML = '';
+            const totalPages = Math.ceil(articles.length / articlesPerPage);
+
+            for (let i = 1; i <= totalPages; i++) {
+                const pageButton = document.createElement('button');
+                pageButton.textContent = i;
+                pageButton.onclick = () => {
+                    currentPage = i;
+                    displayArticles();
+                };
+                paginationContainer.appendChild(pageButton);
+            }
+        }
+
+        function searchArticles() {
+            currentPage = 1;
+            fetchArticles();
+        }
+
+        function sortArticles() {
+            const sortCriteria = document.getElementById('sort').value;
+            if (sortCriteria === 'title') {
+                articles.sort((a, b) => a.Title.localeCompare(b.Title));
+            } else if (sortCriteria === 'publishedAt') {
+                articles.sort((a, b) => new Date(b.PublishedAt) - new Date(a.PublishedAt));
+            }
+            displayArticles();
+        }
+    </script>
+</body>
+</html>
